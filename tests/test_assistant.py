@@ -5,36 +5,75 @@ from agents import MaxTurnsExceeded
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.schemas.assistant import AssistantAnswer
 from app.services import assistant
 
 client = TestClient(app)
 
-ANSWER = AssistantAnswer(intent="early_repayment", answer="Новый платеж 49 477,38 ₽", confidence=0.9)
+TOOL = SimpleNamespace(type="tool_call_output_item", output={"new_payment": "49 477,38 ₽"})
+GOOD = '{"intent": "early_repayment", "answer": "Новый платеж 49 477,38 ₽", "confidence": 0.9}'
+INVENTED = '{"intent": "early_repayment", "answer": "Новый платеж около 48 900 ₽", "confidence": 0.9}'
+UNSURE = '{"intent": "early_repayment", "answer": "Новый платеж 49 477,38 ₽", "confidence": 0.3}'
+
+
+def result(final_output):
+    return SimpleNamespace(final_output=final_output, new_items=[TOOL], to_input_list=lambda: [{"role": "user"}])
 
 
 @pytest.fixture
-def fake_agent(monkeypatch):
+def agent_says(monkeypatch):
     calls = []
 
-    async def run(agent, prompt, context=None):
-        calls.append(context)
-        return SimpleNamespace(final_output=ANSWER.model_dump_json())
+    def script(*outputs):
+        replies = iter(outputs)
 
-    monkeypatch.setattr(assistant, "run_agent", run)
-    return calls
+        async def run(agent, prompt, context=None):
+            calls.append((prompt, context))
+            return result(next(replies))
 
+        monkeypatch.setattr(assistant, "run_agent", run)
+        return calls
 
-def test_ask_passes_loan_in_context(fake_agent):
-    resp = client.post("/ask", json={"loan_id": 1, "question": "Какой будет платеж после досрочки?"})
-    assert resp.status_code == 200
-    assert resp.json()["answer"] == ANSWER.answer
-    assert fake_agent[0].loan_id == 1
+    return script
 
 
-def test_ask_unknown_loan(fake_agent):
+def ask(question="Через год внесу 500 000 и уменьшу платеж"):
+    return client.post("/ask", json={"loan_id": 1, "question": question})
+
+
+def test_good_answer(agent_says):
+    calls = agent_says(GOOD)
+    assert ask().json()["answer"] == "Новый платеж 49 477,38 ₽"
+    assert calls[0][1].loan_id == 1
+
+
+def test_dirty_json_is_parsed(agent_says):
+    agent_says("Конечно! ```json\n" + GOOD + "\n```")
+    assert ask().json()["needs_human"] is False
+
+
+def test_invalid_answer_is_healed_with_error(agent_says):
+    calls = agent_says("не JSON", GOOD)
+    assert ask().json()["answer"] == "Новый платеж 49 477,38 ₽"
+    retry_prompt = calls[1][0]
+    assert "не прошел проверку" in retry_prompt[-1]["content"]
+
+
+def test_invented_money_twice_goes_to_human(agent_says):
+    calls = agent_says(INVENTED, INVENTED)
+    body = ask().json()
+    assert body["needs_human"] is True
+    assert "48 900,00 ₽" in calls[1][0][-1]["content"]
+
+
+def test_low_confidence_goes_to_human(agent_says):
+    agent_says(UNSURE)
+    assert ask().json()["needs_human"] is True
+
+
+def test_unknown_loan(agent_says):
+    calls = agent_says(GOOD)
     assert client.post("/ask", json={"loan_id": 999999, "question": "?"}).status_code == 404
-    assert fake_agent == []
+    assert calls == []
 
 
 def test_turn_budget_goes_to_human(monkeypatch):
@@ -42,21 +81,4 @@ def test_turn_budget_goes_to_human(monkeypatch):
         raise MaxTurnsExceeded("6 ходов")
 
     monkeypatch.setattr(assistant, "run_agent", run)
-    body = client.post("/ask", json={"loan_id": 1, "question": "..."}).json()
-    assert body["needs_human"] is True
-
-
-def test_answer_not_in_format(monkeypatch):
-    async def run(agent, prompt, context=None):
-        return SimpleNamespace(final_output="Новый платеж составит **49 477,38 ₽**.")
-
-    monkeypatch.setattr(assistant, "run_agent", run)
-    assert client.post("/ask", json={"loan_id": 1, "question": "..."}).status_code == 502
-
-
-def test_fenced_answer_is_accepted(monkeypatch):
-    async def run(agent, prompt, context=None):
-        return SimpleNamespace(final_output="```json\n" + ANSWER.model_dump_json() + "\n```")
-
-    monkeypatch.setattr(assistant, "run_agent", run)
-    assert client.post("/ask", json={"loan_id": 1, "question": "..."}).json()["answer"] == ANSWER.answer
+    assert ask().json()["needs_human"] is True

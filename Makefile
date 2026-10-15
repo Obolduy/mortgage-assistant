@@ -1,4 +1,4 @@
-.PHONY: install infra migrate api lint test
+.PHONY: install infra migrate api worker lint test
 
 install:
 	uv sync --frozen
@@ -11,6 +11,9 @@ migrate:
 
 api:
 	uv run uvicorn app.main:app --reload --port 8000
+
+worker:
+	uv run python -m app.temporal_worker
 
 lint:
 	uv run ruff check .

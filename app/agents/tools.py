@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from datetime import date
 from typing import Annotated, Literal
 
 from agents import RunContextWrapper, function_tool
 from pydantic import Field
 
-from app.services import loans
+from app.services import application_process, applications, loans
 
 
 @dataclass
@@ -45,4 +46,26 @@ def simulate_early_repayment(
     return loans.simulate_early_repayment(_loan(ctx), after_month, amount_rub * 100, mode)
 
 
-TOOLS = [get_loan, get_schedule, simulate_early_repayment]
+@function_tool(
+    description_override="Проверить по правилам банка, можно ли перенести дату платежа, и посчитать проценты за переходный период."
+)
+def check_payment_date_change(
+    ctx: RunContextWrapper[ClientContext],
+    new_day: Annotated[int, Field(description="новое число месяца для платежа")],
+) -> dict:
+    return applications.check_payment_day(ctx.context.loan_id, new_day)
+
+
+@function_tool(
+    description_override="Подать заявление на смену даты платежа. Вызывай только если клиент явно попросил оформить заявление."
+)
+async def create_payment_date_application(
+    ctx: RunContextWrapper[ClientContext],
+    new_day: Annotated[int, Field(ge=1, le=28, description="новое число месяца для платежа")],
+) -> dict:
+    loan_id = ctx.context.loan_id
+    job = await application_process.create_payment_day(loan_id, new_day, f"ask:{loan_id}:{new_day}:{date.today()}")
+    return {"job_id": job["id"], "status": job["status"]}
+
+
+TOOLS = [get_loan, get_schedule, simulate_early_repayment, check_payment_date_change, create_payment_date_application]

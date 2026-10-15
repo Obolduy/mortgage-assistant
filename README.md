@@ -43,6 +43,16 @@ git diff workshop-1 -- app/
 - Контракт ответа `AssistantAnswer` и `POST /ask`.
 - Бюджет ходов агента: исчерпан – вопрос уходит сотруднику.
 
+`workshop-2` – решение домашки после второй встречи:
+
+- Разбор грязного JSON от модели и повтор с текстом ошибки, без повторного вызова инструментов.
+- Проверка сумм в ответе: каждая должна найтись в результатах инструментов, иначе повтор, потом
+  сотрудник.
+- Порог уверенности: ниже порога ответ помечается для сотрудника.
+- Таблица задач с ключом идемпотентности.
+- Заявление на смену даты платежа – процесс в Temporal: проверка правил, ожидание сотрудника,
+  решение через update с валидатором. Инструменты агента для проверки и подачи заявления.
+
 ## Запуск
 
 Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и Docker. Для `POST /ask` – локальная модель:
@@ -54,6 +64,7 @@ make install           # зависимости из uv.lock
 make infra             # Postgres с pgvector и Temporal
 make migrate           # повторный запуск напишет «Новых миграций нет»
 make api               # http://localhost:8000/docs
+make worker            # воркер Temporal для заявлений
 ```
 
 ```sh
@@ -81,3 +92,15 @@ make test   # тестам нужна поднятая база с миграц�
 curl -s localhost:8000/ask -H 'Content-Type: application/json' \
   -d '{"loan_id": 1, "question": "После 12-го платежа внесу 500 000 и уменьшу платеж. Какой будет платеж?"}'
 ```
+
+## Заявление на смену даты платежа
+
+```sh
+curl -s -X POST localhost:8000/applications/payment-day -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: my-key-1' -d '{"loan_id": 3, "new_day": 20}'
+curl -s localhost:8000/jobs/<id>
+curl -s -X POST localhost:8000/applications/<id>/decision -H 'Content-Type: application/json' \
+  -d '{"approve": true}'
+```
+
+История процесса – в веб-интерфейсе Temporal: http://localhost:8233.

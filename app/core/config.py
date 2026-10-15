@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     llm_max_retries: int = 3
     agent_max_turns: int = 6
     agent_timeout_s: float = 300.0
+    answer_max_attempts: int = 2
+    confidence_threshold: float = 0.6
+
+    temporal_host: str = "localhost:7233"
+    temporal_task_queue: str = "mortgage"
+    temporal_activity_threads: int = 4
 
 
 settings = Settings()
