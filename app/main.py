@@ -4,7 +4,7 @@ from fastapi import FastAPI
 
 from app.core import db
 from app.core.logging import setup_logging
-from app.routers import health, loans
+from app.routers import assistant, health, loans
 
 
 @asynccontextmanager
@@ -17,3 +17,4 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="mortgage-assistant", lifespan=lifespan)
 app.include_router(health.router)
 app.include_router(loans.router)
+app.include_router(assistant.router)

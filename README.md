@@ -22,7 +22,9 @@ git checkout -b my-work workshop-1
 git diff workshop-1 -- app/
 ```
 
-## Что есть сейчас (`workshop-1`)
+## Что есть в тегах
+
+`workshop-1`:
 
 - Каркас на FastAPI: типизированные настройки, пул соединений, структурные логи.
 - Postgres с pgvector и Temporal в Docker Compose.
@@ -33,9 +35,18 @@ git diff workshop-1 -- app/
   даты платежа.
 - `GET /loans/{id}` и `GET /loans/{id}/schedule`.
 
+`workshop-2-start` – код, который разбираем на второй встрече, с него начинается домашка:
+
+- Клиент модели: повторы и таймаут живут в HTTP-клиенте, у прогона агента свой общий таймаут.
+- Агент на OpenAI Agents SDK с инструментами `get_loan`, `get_schedule`,
+  `simulate_early_repayment`. Номер кредита приходит из контекста клиента, модель его не выбирает.
+- Контракт ответа `AssistantAnswer` и `POST /ask`.
+- Бюджет ходов агента: исчерпан – вопрос уходит сотруднику.
+
 ## Запуск
 
-Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и Docker.
+Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и Docker. Для `POST /ask` – локальная модель:
+[LM Studio](https://lmstudio.ai/) с `gemma-4-e4b-it` на `http://localhost:1234`.
 
 ```sh
 cp .env.example .env   # порт 5434 занят? поменяйте PG_PORT и DATABASE_URL
@@ -47,7 +58,7 @@ make api               # http://localhost:8000/docs
 
 ```sh
 make lint
-make test   # тестам API нужна поднятая база с миграциями
+make test   # тестам нужна поднятая база с миграциями, модель не нужна
 ```
 
 ## Как проверить себя
@@ -63,3 +74,10 @@ make test   # тестам API нужна поднятая база с мигр�
 
 Все суммы – целые копейки, ставка – базисные пункты: 12% годовых = `1200`. Почему так –
 [ADR-0001](docs/adr/0001-agent-stack.md).
+
+## Вопрос ассистенту
+
+```sh
+curl -s localhost:8000/ask -H 'Content-Type: application/json' \
+  -d '{"loan_id": 1, "question": "После 12-го платежа внесу 500 000 и уменьшу платеж. Какой будет платеж?"}'
+```
