@@ -1,4 +1,4 @@
-.PHONY: install infra migrate api worker lint test
+.PHONY: install infra migrate api worker chunks dataset lint test
 
 install:
 	uv sync --frozen
@@ -14,6 +14,12 @@ api:
 
 worker:
 	uv run python -m app.temporal_worker
+
+chunks:
+	uv run python -m app.services.documents $(FILE)
+
+dataset:
+	uv run python scripts/make_dataset.py
 
 lint:
 	uv run ruff check .
