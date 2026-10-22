@@ -18,6 +18,14 @@ class Settings(BaseSettings):
     answer_max_attempts: int = 2
     confidence_threshold: float = 0.6
 
+    embed_model: str = "intfloat/multilingual-e5-base"
+    embed_query_prefix: str = "query: "
+    embed_doc_template: str = "passage: {text}"
+    embed_batch: int = 32
+    search_top_k: int = 5
+    search_threshold: float = 0.81
+    upload_max_bytes: int = 10_000_000
+
     temporal_host: str = "localhost:7233"
     temporal_task_queue: str = "mortgage"
     temporal_activity_threads: int = 4

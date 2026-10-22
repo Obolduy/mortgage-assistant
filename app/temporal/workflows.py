@@ -2,11 +2,19 @@ from datetime import timedelta
 
 from temporalio import workflow
 from temporalio.common import RetryPolicy
+from temporalio.exceptions import ActivityError
 
 with workflow.unsafe.imports_passed_through():
-    from app.temporal.activities import check_payment_day, set_job_status
+    from app.temporal.activities import (
+        check_payment_day,
+        embed_document,
+        parse_document,
+        set_document_status,
+        set_job_status,
+    )
 
 STEP_TIMEOUT = timedelta(seconds=30)
+EMBED_TIMEOUT = timedelta(minutes=10)
 RETRY = RetryPolicy(maximum_attempts=3)
 
 
@@ -48,3 +56,30 @@ class PaymentDayWorkflow:
     @workflow.query
     def status(self) -> str:
         return self._status
+
+
+@workflow.defn
+class ParseDocumentWorkflow:
+    @workflow.run
+    async def run(self, doc_id: str) -> str:
+        try:
+            await self._publish(doc_id, "parsing", None)
+            parsed = await workflow.execute_activity(
+                parse_document, doc_id, start_to_close_timeout=STEP_TIMEOUT, retry_policy=RETRY
+            )
+            if parsed["error"]:
+                return await self._publish(doc_id, "rejected", parsed["error"])
+            await self._publish(doc_id, "embedding", None)
+            await workflow.execute_activity(
+                embed_document, doc_id, start_to_close_timeout=EMBED_TIMEOUT, retry_policy=RETRY
+            )
+            return await self._publish(doc_id, "indexed", None)
+        except ActivityError as exc:
+            return await self._publish(doc_id, "failed", str(exc.cause or exc))
+
+    async def _publish(self, doc_id: str, status: str, error: str | None) -> str:
+        await workflow.execute_activity(
+            set_document_status, args=[doc_id, status, error], start_to_close_timeout=STEP_TIMEOUT,
+            retry_policy=RETRY,
+        )
+        return status

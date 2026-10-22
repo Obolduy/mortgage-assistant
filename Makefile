@@ -1,4 +1,4 @@
-.PHONY: install infra migrate api worker chunks dataset lint test
+.PHONY: install infra migrate api worker chunks dataset reindex search calibrate lint test
 
 install:
 	uv sync --frozen
@@ -17,6 +17,15 @@ worker:
 
 chunks:
 	uv run python -m app.services.documents $(FILE)
+
+reindex:
+	uv run python -m app.rag.reindex
+
+search:
+	uv run python -m app.rag.retrieval "$(Q)" $(MODE)
+
+calibrate:
+	uv run python -m app.rag.calibrate
 
 dataset:
 	uv run python scripts/make_dataset.py

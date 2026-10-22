@@ -62,6 +62,20 @@ git diff workshop-1 -- app/
 - Скан без текстового слоя получает отказ с причиной.
 - Посмотреть чанки файла: `make chunks FILE=data/credit_agreement.pdf`.
 
+`workshop-3` – решение домашки третьей встречи:
+
+- `POST /documents` принимает файл и отвечает 202. Разбор и эмбеддинги – процесс в Temporal,
+  статус документа: `GET /documents/{id}`. Скан получает `rejected` с причиной, повторная загрузка
+  того же файла не создает второй документ.
+- Таблицы `documents` и `chunks`: вектор на 768 чисел и полнотекстовая колонка на русском.
+- Эмбеддинги локально, `intfloat/multilingual-e5-base` с префиксами запроса и документа –
+  [ADR-0004](docs/adr/0004-embedder.md).
+- Поиск `GET /search?q=...&mode=hybrid|vector|fts`: вектор, полнотекст и гибрид через RRF в SQL. Код
+  программы вроде IP-FAMILY-6 ищется точно по полю. Порог режет только векторную ветку –
+  [ADR-0003](docs/adr/0003-search-threshold.md).
+- `make reindex` досчитывает недостающие векторы, повторный запуск ничего не делает.
+- `make search Q="ставка по IP-FAMILY-6" MODE=vector` и `make calibrate` – из консоли.
+
 ## Запуск
 
 Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и Docker. Для `POST /ask` – локальная модель:
@@ -73,7 +87,7 @@ make install           # зависимости из uv.lock
 make infra             # Postgres с pgvector и Temporal
 make migrate           # повторный запуск напишет «Новых миграций нет»
 make api               # http://localhost:8000/docs
-make worker            # воркер Temporal для заявлений
+make worker            # воркер Temporal: заявления и разбор документов
 ```
 
 ```sh
