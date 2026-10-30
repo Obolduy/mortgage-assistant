@@ -17,9 +17,10 @@ def doc_text(section: str, text: str) -> str:
 
 
 def embed_query(text: str) -> list[float]:
-    return model().encode(settings.embed_query_prefix + text, normalize_embeddings=True).tolist()
+    return model().encode(settings.embed_query_prefix + text, normalize_embeddings=True, show_progress_bar=False).tolist()
 
 
 def embed_documents(items: list[tuple[str, str]]) -> list[list[float]]:
     texts = [doc_text(section, text) for section, text in items]
-    return model().encode(texts, batch_size=settings.embed_batch, normalize_embeddings=True).tolist()
+    return model().encode(texts, batch_size=settings.embed_batch, normalize_embeddings=True,
+                           show_progress_bar=False).tolist()

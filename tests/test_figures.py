@@ -1,10 +1,11 @@
 from types import SimpleNamespace
 
-from app.services.figures import money_in, unconfirmed_money
+from app.services.figures import money_in, tool_outputs, unconfirmed_money
 
 
 def result_with(*outputs):
-    return SimpleNamespace(new_items=[SimpleNamespace(type="tool_call_output_item", output=o) for o in outputs])
+    result = SimpleNamespace(new_items=[SimpleNamespace(type="tool_call_output_item", output=o) for o in outputs])
+    return tool_outputs(result)
 
 
 def test_money_in():

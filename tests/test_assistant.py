@@ -15,8 +15,8 @@ INVENTED = '{"intent": "early_repayment", "answer": "Новый платеж о�
 UNSURE = '{"intent": "early_repayment", "answer": "Новый платеж 49 477,38 ₽", "confidence": 0.3}'
 
 
-def result(final_output):
-    return SimpleNamespace(final_output=final_output, new_items=[TOOL], to_input_list=lambda: [{"role": "user"}])
+def result(final_output, items=(TOOL,)):
+    return SimpleNamespace(final_output=final_output, new_items=list(items), to_input_list=lambda: [{"role": "user"}])
 
 
 @pytest.fixture
@@ -56,6 +56,16 @@ def test_invalid_answer_is_healed_with_error(agent_says):
     assert ask().json()["answer"] == "Новый платеж 49 477,38 ₽"
     retry_prompt = calls[1][0]
     assert "не прошел проверку" in retry_prompt[-1]["content"]
+
+
+def test_healed_answer_keeps_tool_outputs_of_first_attempt(monkeypatch):
+    replies = iter([result("не JSON"), result(GOOD, items=())])
+
+    async def run(agent, prompt, context=None):
+        return next(replies)
+
+    monkeypatch.setattr(assistant, "run_agent", run)
+    assert ask().json()["answer"] == "Новый платеж 49 477,38 ₽"
 
 
 def test_invented_money_twice_goes_to_human(agent_says):

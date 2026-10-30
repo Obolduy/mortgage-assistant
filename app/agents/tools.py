@@ -5,6 +5,9 @@ from typing import Annotated, Literal
 from agents import RunContextWrapper, function_tool
 from pydantic import Field
 
+from app.core.config import settings
+from app.rag import retrieval
+from app.rag.context import build_context
 from app.services import application_process, applications, loans
 
 
@@ -68,4 +71,15 @@ async def create_payment_date_application(
     return {"job_id": job["id"], "status": job["status"]}
 
 
-TOOLS = [get_loan, get_schedule, simulate_early_repayment, check_payment_date_change, create_payment_date_application]
+@function_tool(
+    description_override="Найти в документах банка правила: договор, регламент смены даты, правила досрочного "
+    "погашения, тарифы и программы. Возвращает фрагменты с номером источника в квадратных скобках."
+)
+def search_policies(
+    ctx: RunContextWrapper[ClientContext],
+    query: Annotated[str, Field(min_length=2, description="что ищем, своими словами или кодом программы")],
+) -> str:
+    return build_context(retrieval.search(query), settings.context_max_chars)
+
+
+TOOLS = [get_loan, get_schedule, simulate_early_repayment, check_payment_date_change, create_payment_date_application, search_policies]

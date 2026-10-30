@@ -1,4 +1,4 @@
-.PHONY: install infra migrate api worker chunks dataset reindex search calibrate lint test
+.PHONY: install infra migrate api worker chunks dataset reindex search calibrate index-data eval lint test
 
 install:
 	uv sync --frozen
@@ -26,6 +26,12 @@ search:
 
 calibrate:
 	uv run python -m app.rag.calibrate
+
+index-data:
+	for f in data/*; do curl -s -F "file=@$$f" localhost:8000/documents; echo; done
+
+eval:
+	uv run python -m evals.runner
 
 dataset:
 	uv run python scripts/make_dataset.py

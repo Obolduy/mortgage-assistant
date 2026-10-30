@@ -9,7 +9,8 @@ class AskRequest(BaseModel):
 
 
 class AssistantAnswer(BaseModel):
-    intent: Literal["schedule", "early_repayment", "payment_day", "other"]
+    intent: Literal["schedule", "early_repayment", "payment_day", "policy", "other"]
     answer: str
+    sources: list[int] = []
     needs_human: bool = False
     confidence: float = Field(ge=0, le=1)

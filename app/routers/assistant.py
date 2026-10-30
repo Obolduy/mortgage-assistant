@@ -10,9 +10,9 @@ router = APIRouter(tags=["assistant"])
 @router.post("/ask", response_model=AssistantAnswer)
 async def ask(body: AskRequest):
     try:
-        answer = await assistant.ask(body.loan_id, body.question)
+        reply = await assistant.ask(body.loan_id, body.question)
     except ValidationError as exc:
         raise HTTPException(502, "ответ модели не по формату") from exc
-    if answer is None:
+    if reply is None:
         raise HTTPException(404, "кредит не найден")
-    return answer
+    return reply.answer

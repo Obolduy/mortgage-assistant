@@ -17,12 +17,11 @@ def numbers_in(text: str) -> set[int]:
     return {int(re.sub(r"\D", "", n)) * 100 for n in NUMBER.findall(text)}
 
 
-def tool_outputs(result) -> str:
-    return " ".join(
-        json.dumps(i.output, ensure_ascii=False, default=str) for i in result.new_items if i.type == "tool_call_output_item"
-    )
+def tool_outputs(result) -> list[str]:
+    outputs = (i.output for i in result.new_items if i.type == "tool_call_output_item")
+    return [o if isinstance(o, str) else json.dumps(o, ensure_ascii=False, default=str) for o in outputs]
 
 
-def unconfirmed_money(answer: str, question: str, result) -> set[int]:
-    allowed = money_in(tool_outputs(result)) | numbers_in(question)
+def unconfirmed_money(answer: str, question: str, outputs: list[str]) -> set[int]:
+    allowed = money_in(" ".join(outputs)) | numbers_in(question)
     return money_in(answer) - allowed

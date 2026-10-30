@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     agent_timeout_s: float = 300.0
     answer_max_attempts: int = 2
     confidence_threshold: float = 0.6
+    llm_prices: dict[str, tuple[int, int]] = {}
+    context_max_chars: int = 3000
 
     embed_model: str = "intfloat/multilingual-e5-base"
     embed_query_prefix: str = "query: "

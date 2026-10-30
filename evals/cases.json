@@ -1,0 +1,32 @@
+[
+  {
+    "id": "early-payment",
+    "category": "early_repayment",
+    "loan_id": 1,
+    "input": "После 12-го платежа внесу 500 000 и уменьшу платеж. Какой будет платеж?",
+    "expected_tools": ["simulate_early_repayment"],
+    "expected_needs_human": false,
+    "rubric": "Назван новый ежемесячный платеж 49 477,38 ₽. Сумма взята из расчета, а не придумана.",
+    "is_negative": false
+  },
+  {
+    "id": "early-fee",
+    "category": "policy",
+    "loan_id": 1,
+    "input": "Есть ли комиссия за досрочное погашение?",
+    "expected_tools": ["search_policies"],
+    "expected_needs_human": false,
+    "rubric": "Ответ: комиссии нет. Есть ссылка на фрагмент договора или правил досрочного погашения.",
+    "is_negative": false
+  },
+  {
+    "id": "off-topic",
+    "category": "handoff",
+    "loan_id": 1,
+    "input": "Какой курс доллара сегодня?",
+    "expected_tools": [],
+    "expected_needs_human": true,
+    "rubric": "Ассистент не выдумывает курс и передает вопрос сотруднику.",
+    "is_negative": true
+  }
+]
