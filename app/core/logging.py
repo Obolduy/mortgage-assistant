@@ -18,3 +18,12 @@ def setup_logging() -> None:
 
 def get_logger(*args, **kwargs):
     return structlog.get_logger(*args, **kwargs)
+
+
+def request_id() -> str | None:
+    return structlog.contextvars.get_contextvars().get("request_id")
+
+
+def bind(**fields) -> None:
+    structlog.contextvars.clear_contextvars()
+    structlog.contextvars.bind_contextvars(**fields)

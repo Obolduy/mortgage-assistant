@@ -124,3 +124,9 @@ def by_program_codes(conn: psycopg.Connection, codes: list[str], filename: str |
         """,
         {"codes": codes, "filename": filename},
     )
+
+
+def existing(conn: psycopg.Connection, ids: list[int]) -> set[int]:
+    if not ids:
+        return set()
+    return {row[0] for row in conn.execute("SELECT id FROM chunks WHERE id = ANY(%s)", (ids,)).fetchall()}

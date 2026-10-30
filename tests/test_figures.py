@@ -24,3 +24,8 @@ def test_money_from_question_is_confirmed():
 def test_invented_money():
     result = result_with({"new_payment": "49 477,38 ₽"})
     assert unconfirmed_money("Новый платеж около 48 900 ₽", "вопрос", result) == {4_890_000}
+
+
+def test_price_from_document_table_is_confirmed():
+    outputs = result_with("[12 | tariffs.xlsx | Услуги, строка 5]\nУслуги. Услуга: Дубликат; Стоимость, ₽: 500")
+    assert unconfirmed_money("Дубликат стоит 500 ₽", "сколько стоит дубликат?", outputs) == set()

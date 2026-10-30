@@ -11,6 +11,7 @@ from app.domain.money import format_rub
 from app.llm.client import run_agent
 from app.schemas.assistant import AssistantAnswer
 from app.services import loans
+from app.services.citations import citation_error, seen_sources
 from app.services.figures import tool_outputs, unconfirmed_money
 from app.services.json_utils import parse_llm_json
 
@@ -42,6 +43,9 @@ def check_answer(result, question: str, outputs: list[str]) -> tuple[AssistantAn
     if bad:
         sums = ", ".join(format_rub(k) for k in sorted(bad))
         return None, f"суммы {sums} нет в результатах инструментов, бери цифры только оттуда"
+    error = citation_error(out.sources, seen_sources(outputs))
+    if error:
+        return None, error
     return out, None
 
 

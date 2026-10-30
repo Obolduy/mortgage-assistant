@@ -31,7 +31,7 @@ index-data:
 	for f in data/*; do curl -s -F "file=@$$f" localhost:8000/documents; echo; done
 
 eval:
-	uv run python -m evals.runner
+	uv run python -m evals.runner $(if $(FULL),--full,)
 
 dataset:
 	uv run python scripts/make_dataset.py

@@ -6,9 +6,12 @@ from agents import RunContextWrapper, function_tool
 from pydantic import Field
 
 from app.core.config import settings
+from app.core.logging import get_logger
 from app.rag import retrieval
 from app.rag.context import build_context
 from app.services import application_process, applications, loans
+
+log = get_logger(__name__)
 
 
 @dataclass
@@ -68,6 +71,7 @@ async def create_payment_date_application(
 ) -> dict:
     loan_id = ctx.context.loan_id
     job = await application_process.create_payment_day(loan_id, new_day, f"ask:{loan_id}:{new_day}:{date.today()}")
+    log.info("application_created", job_id=job["id"], loan_id=loan_id)
     return {"job_id": job["id"], "status": job["status"]}
 
 

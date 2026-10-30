@@ -23,5 +23,6 @@ def tool_outputs(result) -> list[str]:
 
 
 def unconfirmed_money(answer: str, question: str, outputs: list[str]) -> set[int]:
-    allowed = money_in(" ".join(outputs)) | numbers_in(question)
+    evidence = " ".join(outputs)
+    allowed = money_in(evidence) | numbers_in(evidence) | numbers_in(question)
     return money_in(answer) - allowed

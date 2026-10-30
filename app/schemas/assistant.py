@@ -1,6 +1,9 @@
+import re
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+SOURCE_NUMBER = re.compile(r"\d+")
 
 
 class AskRequest(BaseModel):
@@ -14,3 +17,10 @@ class AssistantAnswer(BaseModel):
     sources: list[int] = []
     needs_human: bool = False
     confidence: float = Field(ge=0, le=1)
+
+    @field_validator("sources", mode="before")
+    @classmethod
+    def source_numbers(cls, value):
+        if not isinstance(value, list):
+            return value
+        return [int(m.group()) if isinstance(v, str) and (m := SOURCE_NUMBER.search(v)) else v for v in value]

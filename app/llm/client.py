@@ -14,7 +14,7 @@ from openai import AsyncOpenAI
 
 from app.core import db
 from app.core.config import settings
-from app.core.logging import get_logger
+from app.core.logging import get_logger, request_id
 from app.llm.cost import cost_micros
 from app.repositories import llm_calls
 
@@ -58,7 +58,7 @@ def record_usage(agent: Agent, usage, duration_ms: int) -> None:
     try:
         with db.connection() as conn:
             llm_calls.add(
-                conn, request_id=None, agent=agent.name, model=model, requests=usage.requests,
+                conn, request_id=request_id(), agent=agent.name, model=model, requests=usage.requests,
                 input_tokens=usage.input_tokens, output_tokens=usage.output_tokens,
                 cost_micros=cost_micros(model, usage.input_tokens, usage.output_tokens), duration_ms=duration_ms,
             )

@@ -89,6 +89,26 @@ git diff workshop-1 -- app/
 - Исправлено с прошлой встречи: при лечении ответа проверка сумм видит результаты инструментов
   первой попытки. Раньше верный ответ со второй попытки отклонялся и уходил сотруднику.
 
+`workshop-4` – решение домашки четвертой встречи:
+
+- Проверка ссылок: номер в `sources` был среди найденных фрагментов этого ответа и есть в базе.
+  Искал по документам – ссылка обязательна. Нарушение – лечение, второй раз – сотруднику.
+- Сквозной `X-Request-ID`: промежуточный слой, логи, `llm_calls`. Шаги Temporal пишут в логи
+  `job_id` и `doc_id`.
+- Служебные вызовы (судья) – на `LLM_SMALL_MODEL`.
+- Оценка: 17 кейсов в `evals/cases.json`, проверки кодом до судьи, судья по рубрике со схемой
+  ответа, `judge_failed` отдельно от провала, pass@K и pass^K по категориям, отчеты в
+  `evals/reports/`. `make eval` – быстрый набор, `make eval FULL=1` – все кейсы по три попытки.
+
+Стоимость и токены одного ответа:
+
+```sql
+SELECT agent, model, sum(requests) AS requests, sum(input_tokens + output_tokens) AS tokens,
+       sum(cost_micros) AS cost_micros, sum(duration_ms) AS ms
+FROM llm_calls WHERE request_id = '<X-Request-ID из ответа>'
+GROUP BY agent, model;
+```
+
 ## Запуск
 
 Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и Docker. Для `POST /ask` – локальная модель:
