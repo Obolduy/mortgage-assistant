@@ -62,7 +62,7 @@ async def run_trial(case: dict, request_id: str) -> dict:
         verdict = await judge(case, reply)
     status = "fail" if not all(marks.values()) or verdict["verdict"] == "fail" else (
         "judge_failed" if verdict["verdict"] == "judge_failed" else "pass")
-    return {"request_id": request_id, "status": status, "checks": marks, "judge": verdict, "tools": reply.tools,
+    return {"request_id": request_id, "status": status, "checks": marks, "judge": verdict, "tools": reply.tools, "tier": reply.tier,
             "answer": reply.answer.answer, "sources": reply.answer.sources, **usage(request_id)}
 
 
@@ -86,7 +86,10 @@ def markdown(report: dict) -> str:
     k = report["k"]
     header = (f"Модель: `{report['model']}`, судья: `{report['judge_model']}`, "
               f"кейсов: {len(report['results'])}, попыток на кейс: {k}.")
-    lines = [f"# Оценка {report['run_id']}", "", header, "",
+    money = report["money"]
+    spent = (f"Стоимость прогона: {money['cost_micros']} мкд. Успешных попыток: {money['passed']}, "
+             f"на успешную: {money['per_pass_micros']} мкд. Ушло в облако попыток: {money['cloud_trials']}.")
+    lines = [f"# Оценка {report['run_id']}", "", header, "", spent, "",
              f"| Категория | Кейсов | Оценено | pass@{k} | pass^{k} |", "| --- | --- | --- | --- | --- |"]
     lines += [f"| {name} | {s['cases']} | {s['evaluated']} | {s['pass_at_k']} | {s['pass_all_k']} |"
               for name, s in report["summary"].items()]
@@ -105,10 +108,15 @@ async def main(full: bool, k: int) -> None:
     run_id = datetime.now(UTC).strftime("%Y%m%d-%H%M%S")
     results = []
     for case in cases:
-        trials = [await run_trial(case, f"eval-{run_id}-{case['id']}-{n}") for n in range(1, k + 1)]
-        results.append({"id": case["id"], "category": case["category"], "trials": trials, **score(trials)})
-        print(f"{case['id']:18} {' '.join(t['status'] for t in trials)}", flush=True)
-    report = {"run_id": run_id, "model": settings.llm_model, "judge_model": settings.llm_small_model, "k": k,
+        runs = [await run_trial(case, f"eval-{run_id}-{case['id']}-{n}") for n in range(1, k + 1)]
+        results.append({"id": case["id"], "category": case["category"], "trials": runs, **score(runs)})
+        print(f"{case['id']:18} {' '.join(t['status'] for t in runs)}", flush=True)
+    trials = [t for r in results for t in r["trials"]]
+    passed = sum(t["status"] == "pass" for t in trials)
+    cost = sum(t["cost_micros"] for t in trials)
+    money = {"cost_micros": cost, "passed": passed, "per_pass_micros": cost // passed if passed else None,
+             "cloud_trials": sum(t["tier"] == "cloud" for t in trials)}
+    report = {"money": money, "run_id": run_id, "model": settings.llm_model, "judge_model": settings.llm_small_model, "k": k,
               "summary": summary(results), "results": results}
     REPORTS.mkdir(exist_ok=True)
     (REPORTS / f"{run_id}.json").write_text(json.dumps(report, ensure_ascii=False, indent=2))

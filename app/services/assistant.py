@@ -9,6 +9,7 @@ from app.agents.tools import ClientContext
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.domain.money import format_rub
+from app.guardrails.injection import is_injection, output_error
 from app.guardrails.pii import mask_pii
 from app.llm.client import cloud_enabled, run_agent
 from app.schemas.assistant import AssistantAnswer
@@ -22,6 +23,13 @@ log = get_logger(__name__)
 HANDOFF = AssistantAnswer(
     intent="other",
     answer="Не смог разобраться с вопросом, передаю его сотруднику банка.",
+    needs_human=True,
+    confidence=0,
+)
+
+BLOCKED = AssistantAnswer(
+    intent="other",
+    answer="Не могу выполнить такую просьбу, передаю вопрос сотруднику банка.",
     needs_human=True,
     confidence=0,
 )
@@ -46,7 +54,7 @@ def check_answer(result, question: str, outputs: list[str]) -> tuple[AssistantAn
     if bad:
         sums = ", ".join(format_rub(k) for k in sorted(bad))
         return None, f"суммы {sums} нет в результатах инструментов, бери цифры только оттуда"
-    error = citation_error(out.sources, seen_sources(outputs))
+    error = citation_error(out.sources, seen_sources(outputs), out.needs_human) or output_error(out.answer)
     if error:
         return None, error
     return out, None
@@ -80,6 +88,10 @@ async def ask(loan_id: int, question: str) -> Reply | None:
         return None
     context = ClientContext(loan_id)
     question = mask_pii(question)[0]
+    injected, reason = await is_injection(question)
+    if injected:
+        log.warning("question_blocked", reason=reason[:200])
+        return Reply(BLOCKED)
     reply = Reply(HANDOFF)
     await try_model(reply, question, context, cloud=False)
     if reply.answer is HANDOFF and cloud_enabled():

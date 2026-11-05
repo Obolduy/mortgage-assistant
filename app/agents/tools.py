@@ -7,6 +7,7 @@ from pydantic import Field
 
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.guardrails.injection import guard_hits
 from app.rag import retrieval
 from app.rag.context import build_context
 from app.services import application_process, applications, loans
@@ -79,11 +80,14 @@ async def create_payment_date_application(
     description_override="Найти в документах банка правила: договор, регламент смены даты, правила досрочного "
     "погашения, тарифы и программы. Возвращает фрагменты с номером источника в квадратных скобках."
 )
-def search_policies(
+async def search_policies(
     ctx: RunContextWrapper[ClientContext],
     query: Annotated[str, Field(min_length=2, description="что ищем, своими словами или кодом программы")],
 ) -> str:
-    return build_context(retrieval.search(query), settings.context_max_chars)
+    safe, blocked = await guard_hits(retrieval.search(query))
+    if len(blocked) > settings.suspicious_chunks_limit:
+        return "Документы требуют проверки сотрудником. Передай вопрос сотруднику."
+    return build_context(safe, settings.context_max_chars)
 
 
 TOOLS = [get_loan, get_schedule, simulate_early_repayment, check_payment_date_change, create_payment_date_application, search_policies]

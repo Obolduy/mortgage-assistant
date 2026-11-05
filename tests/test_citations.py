@@ -87,3 +87,7 @@ def test_source_label_is_reduced_to_number():
     answer = AssistantAnswer(intent="policy", answer="нет", confidence=1,
                              sources=["1164 | credit_agreement.pdf | стр. 2", "[1160 | rules.docx]", 7])
     assert answer.sources == [1164, 1160, 7]
+
+
+def test_handoff_needs_no_source():
+    assert citation_error([], {7}, needs_human=True) is None

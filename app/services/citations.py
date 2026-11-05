@@ -7,8 +7,8 @@ def seen_sources(outputs: list[str]) -> set[int]:
     return source_ids("\n".join(outputs))
 
 
-def citation_error(sources: list[int], seen: set[int]) -> str | None:
-    if seen and not sources:
+def citation_error(sources: list[int], seen: set[int], needs_human: bool = False) -> str | None:
+    if seen and not sources and not needs_human:
         return "ответ по документам без источников: перечисли в sources номера фрагментов, на которые опираешься"
     unseen = sorted(set(sources) - seen)
     if unseen:

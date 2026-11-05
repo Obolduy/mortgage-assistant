@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     cloud_model: str = ""
     llm_prices: dict[str, tuple[int, int]] = {}
     context_max_chars: int = 3000
+    suspicious_chunks_limit: int = 2
 
     embed_model: str = "intfloat/multilingual-e5-base"
     embed_query_prefix: str = "query: "
