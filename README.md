@@ -109,6 +109,22 @@ FROM llm_calls WHERE request_id = '<X-Request-ID из ответа>'
 GROUP BY agent, model;
 ```
 
+`workshop-5-start` – код, который разбираем на пятой встрече:
+
+- Маскирование ПДн в `app/guardrails/pii.py`: почта, паспорт, карта с проверкой Луна, ИНН с проверкой
+  контрольной суммы, телефон. Работает на вопросе клиента и при сборке контекста, до любого вызова
+  модели. ФИО не ловит. Посмотреть: `make masked FILE=data/client_application.docx`.
+- Каскад: локальная модель не справилась (формат дважды, бюджет ходов, недоступна) – вопрос уходит в
+  облако, если заданы `CLOUD_BASE_URL`, `CLOUD_API_KEY`, `CLOUD_MODEL`. Иначе – сотруднику.
+- В `llm_calls` столбец `tier`: `local` или `cloud`.
+
+Проверить каскад без ключа: локальная модель на мертвом порту, «облако» – LM Studio.
+
+```sh
+LLM_BASE_URL=http://localhost:9/v1 CLOUD_BASE_URL=http://localhost:1234/v1 CLOUD_API_KEY=x \
+  CLOUD_MODEL=gemma-4-e4b-it make api
+```
+
 ## Запуск
 
 Нужны Python 3.12, [uv](https://docs.astral.sh/uv/) и Docker. Для `POST /ask` – локальная модель:

@@ -1,4 +1,4 @@
-.PHONY: install infra migrate api worker chunks dataset reindex search calibrate index-data eval lint test
+.PHONY: install infra migrate api worker chunks dataset reindex search calibrate index-data eval masked lint test
 
 install:
 	uv sync --frozen
@@ -32,6 +32,9 @@ index-data:
 
 eval:
 	uv run python -m evals.runner $(if $(FULL),--full,)
+
+masked:
+	uv run python -m app.guardrails.pii $(FILE)
 
 dataset:
 	uv run python scripts/make_dataset.py

@@ -26,7 +26,7 @@ def agent_says(monkeypatch):
     def script(*outputs):
         replies = iter(outputs)
 
-        async def run(agent, prompt, context=None):
+        async def run(agent, prompt, context=None, cloud=False):
             calls.append((prompt, context))
             return result(next(replies))
 
@@ -61,7 +61,7 @@ def test_invalid_answer_is_healed_with_error(agent_says):
 def test_healed_answer_keeps_tool_outputs_of_first_attempt(monkeypatch):
     replies = iter([result("не JSON"), result(GOOD, items=())])
 
-    async def run(agent, prompt, context=None):
+    async def run(agent, prompt, context=None, cloud=False):
         return next(replies)
 
     monkeypatch.setattr(assistant, "run_agent", run)
@@ -87,7 +87,7 @@ def test_unknown_loan(agent_says):
 
 
 def test_turn_budget_goes_to_human(monkeypatch):
-    async def run(agent, prompt, context=None):
+    async def run(agent, prompt, context=None, cloud=False):
         raise MaxTurnsExceeded("6 ходов")
 
     monkeypatch.setattr(assistant, "run_agent", run)

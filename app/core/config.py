@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     agent_timeout_s: float = 300.0
     answer_max_attempts: int = 2
     confidence_threshold: float = 0.6
+    cloud_base_url: str = ""
+    cloud_api_key: str = ""
+    cloud_model: str = ""
     llm_prices: dict[str, tuple[int, int]] = {}
     context_max_chars: int = 3000
 

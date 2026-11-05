@@ -53,7 +53,7 @@ def answer(*sources):
 def test_invented_source_is_healed_then_handed_off(monkeypatch):
     prompts = []
 
-    async def run(agent, prompt, context=None):
+    async def run(agent, prompt, context=None, cloud=False):
         prompts.append(prompt)
         return search_result(answer(999999), [-1])
 

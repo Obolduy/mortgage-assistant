@@ -1,5 +1,7 @@
 import re
 
+from app.guardrails.pii import mask_pii
+
 SOURCE_ID = re.compile(r"^\[(\d+) \|", re.MULTILINE)
 
 
@@ -18,7 +20,7 @@ def build_context(hits: list[dict], max_chars: int) -> str:
     for hit in hits:
         if hit["text"] in seen:
             continue
-        block = f"[{hit['id']} | {label(hit)}]\n{hit['text']}"
+        block = f"[{hit['id']} | {label(hit)}]\n{mask_pii(hit['text'])[0]}"
         if parts and size + len(block) > max_chars:
             break
         seen.add(hit["text"])
